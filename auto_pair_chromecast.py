@@ -1,0 +1,138 @@
+#!/usr/bin/python3
+
+# Note: We are assuming only one Chromecast on the local network right
+#       now, meaning no need for hostnames mapping to IP addresses
+
+import subprocess
+
+
+def restart_adb_server():
+    """
+    Restarts the Android Debug Bridge (ADB) daemon.
+
+    This is useful for refreshing the ADB connection, especially when
+    devices are not detected, or ADB is behaving unexpectedly.
+    """
+    cmd_kill_server = "adb kill-server"
+    cmd_start_server = "adb start-server"
+
+    subprocess.run(cmd_kill_server, shell=True)
+    subprocess.run(cmd_start_server, shell=True)
+
+
+def find_chromecast_on_network() -> str:
+    """
+    Finds the IP address of the Chromecast on network
+
+    Returns:
+    --------
+    str: The IP address of the Chromecast on network
+    """
+    # Todo: Change this command to include ethernet
+    cmd = "avahi-browse -rt _googlecast._tcp | \
+	       grep -E 'IPv4|address' | awk '{print $3}' | grep '\.' | \
+	       tr -d '[]'"
+    result = subprocess.run(cmd, shell=True, capture_output=True,
+                            text=True)
+
+    address = result.stdout.strip()
+    # error = result.stderr # case where there is an error?
+    print(f"Chromecast on local network: {address}")
+
+    return address
+
+
+def connect_quietly(address: str) -> str:
+    """
+    Connect to the Chromecast using Android Debug Bridge without
+    triggering the authorization popup to appear on the Chromecast GUI.
+
+    Parameters:
+    -----------
+    address: str
+        The IP address of the device
+
+    Returns:
+    --------
+    str
+        A statement regarding the outcome of the connection
+
+    """
+    cmd = f"adb -a connect {address}:5555"
+    result = subprocess.run(cmd, shell=True, capture_output=True,
+                            text=True)
+
+    # TODO: What happens if there is an error?
+
+    return result.stdout.strip()
+
+
+def get_connection_status(address: str) -> str:
+    """
+    Retrieves the Android Debug Bridge connection status for a given
+    device.
+
+    If found, the status can be one of the following:
+        'offline': Device is offline
+        'unauthorized': Device is connected but unauthorized
+        'device': Device is connected and authorized
+
+    Parameters:
+    -----------
+    address: str
+        The IP address of the device
+
+    Returns:
+    --------
+    str
+        The connection status of the device, if found. Returns an empty
+        string if the device is not listed.
+
+    """
+    cmd = f"adb devices | grep {address} | awk '{{print $2}}'"
+    result = subprocess.run(cmd, shell=True, capture_output=True,
+                            text=True)
+
+    # TODO: What happens if there is an error?
+
+    return result.stdout.strip()
+
+
+def attempt_to_connect(address: str):
+    """
+    Attempts to connect to a Chromecast device at the given address
+    using Android Debug Bridge.
+
+    The connection should succeed only if the Chromecast has previously
+    remembered the remote control making the request. That is, the user
+    had selected the "Always Allow" option the last time the remote
+    control attempted to authorize its connection to the Chromecast.
+
+    Parameters:
+    -----------
+    address: str
+        The IP address of the Chromecast device
+    """
+    attempt_outcome = connect_quietly(address)
+    print(f"Connection attempt outcome: {attempt_outcome}")
+
+    connection_status = get_connection_status(address)
+    print(f"Connection status: {connection_status}\n")
+
+    if connection_status == "device":
+        print("Remote control connected!")
+    elif connection_status == "":
+        print("Connection refused")
+    elif connection_status == "unauthorized":
+        print("Connection unauthorized. Forgetting Chromecast...")
+    # TODO: Delete hostname from txt
+    elif connection_status == "offline":
+        print("Chromecast is offline")
+    else:
+        print("Error: Unknown connection status")
+
+
+if __name__ == "__main__":
+    restart_adb_server()
+    ip_address = find_chromecast_on_network()
+    attempt_to_connect(ip_address)
