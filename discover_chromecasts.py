@@ -1,19 +1,27 @@
 import pychromecast
+import asyncio
+from bleak import BleakScanner
+
+async def find_chromecast_bluetooth():
+    devices = await BleakScanner.discover(timeout=20)
+    for d in devices:
+        print(d)
 
 def find_chromecast():
     chromecasts, browser = pychromecast.get_chromecasts()
+    browser.stop_discovery()
 
     for cast in chromecasts:
         print("Friendly name:", cast.cast_info.friendly_name)
         print("IP address: ", cast.cast_info.host)  # This will be used to connect to the Chromecast
         print("UUID: ", cast.cast_info.uuid)  # This will be cached
 
-
-def pair_to_chromecast_first_time():
-
-    # Find IP address of Chromecast
-
     return
+
+
+if __name__ == "__main__":
+    find_chromecast()
+    #asyncio.run(find_chromecast_bluetooth())
 
 # Connecting for the first time:
 # - Press a button to connect for first time
