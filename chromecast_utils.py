@@ -29,8 +29,7 @@ def get_ip_address() -> str:
 
 
 def restart_adb_server():
-    """
-    Restarts the Android Debug Bridge (ADB) daemon.
+    """Restarts the Android Debug Bridge (ADB) daemon.
 
     This is useful for refreshing the ADB connection, especially when
     devices are not detected, or ADB is behaving unexpectedly.
@@ -42,26 +41,22 @@ def restart_adb_server():
     subprocess.run(cmd_start_server, shell=True)
 
 
-def connect_with_authorization_prompt(address: str) -> str:
-    """
-    Connect to the Chromecast using Android Debug Bridge and
-    trigger the authorization popup to appear on the Chromecast GUI.
+# def connect_to_device(address: str, quiet_connect: bool) -> str:
+def connect_with_authorization_prompt(ip_address: str) -> str:
+    """Connects to the Cast-enabled device, triggering an authorization prompt if required.
+    # TODO: I THINK THIS IS MORE SUITED FOR ATTEMPT_TO_CONNECT
+    Developer Options and ADB Debugging must be enabled on the Google Cast-enabled device to
+    allow connection. An authorization prompt will appear on the device screen if it does not
+    recognize the host.
 
-    Parameters:
-    -----------
-    address: str
-        The IP address of the device
+    Args:
+        ip_address: The IPv4 address of the Google Cast-enabled device.
 
     Returns:
-    --------
-    str
-        A statement regarding the outcome of the connection
-
+        A string of the output of the ADB connection command.
     """
-    cmd = f"adb connect {address}:5555"
+    cmd = f"adb connect {ip_address}:5555"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-
-    # TODO: What happens if there is an error?
 
     return result.stdout.strip()
 
@@ -90,56 +85,42 @@ def connect_quietly(address: str) -> str:
     return result.stdout.strip()
 
 
-def get_connection_status(address: str) -> str:
-    """
-    Retrieves the Android Debug Bridge connection status for a given
-    device.
+def get_connection_status(ip_address: str) -> str:
+    """Fetches the Android Debug Bridge connection status for the Google Cast-enabled device.
 
     If found, the status can be one of the following:
         'offline': Device is offline
         'unauthorized': Device is connected but unauthorized
         'device': Device is connected and authorized
-
-    Parameters:
-    -----------
-    address: str
-        The IP address of the device
+    
+    Args:
+        ip_address: The IPv4 address of the Google Cast-enabled device.
 
     Returns:
-    --------
-    str
-        The connection status of the device, if found. Returns an empty
-        string if the device is not listed.
-
+        The connection status of the device, if found. Returns an empty string if the
+         device is not listed.
     """
-    cmd = f"adb devices | grep {address} | awk '{{print $2}}'"
+    cmd = f"adb devices | grep {ip_address} | awk '{{print $2}}'"
     result = subprocess.run(cmd, shell=True, capture_output=True,
                             text=True)
-
-    # TODO: What happens if there is an error?
 
     return result.stdout.strip()
 
 
-def attempt_to_connect(address: str):  # TODO: add argument for quietly or not
-    """
-    Attempts to connect to a Chromecast device at the given address
-    using Android Debug Bridge.
+def attempt_to_connect(ip_address: str):  # TODO: add argument for quietly or not
+    """Attempts to connect to a Cast-enabled device at the given IP address.
 
-    The connection should succeed only if the Chromecast has previously
-    remembered the remote control making the request. That is, the user
-    had selected the "Always Allow" option the last time the remote
-    control attempted to authorize its connection to the Chromecast.
+    The connection should succeed only if the Cast-enabled device has previously
+    remembered the host. That is, the user had selected the "Always Allow" option
+    the last time the host attempted to authorize its connection to the device.
 
-    Parameters:
-    -----------
-    address: str
-        The IP address of the Chromecast device
+    Args:
+        ip_address: The IPv4 address of the Google Cast-enabled device.
     """
-    attempt_outcome = connect_quietly(address)
+    attempt_outcome = connect_quietly(ip_address)
     print(f"Connection attempt outcome: {attempt_outcome}")
 
-    connection_status = get_connection_status(address)
+    connection_status = get_connection_status(ip_address)
     print(f"Connection status: {connection_status}\n")
 
     if connection_status == "device":
