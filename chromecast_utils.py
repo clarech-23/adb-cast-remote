@@ -2,23 +2,30 @@ import subprocess
 
 
 def get_ip_address() -> str:
-    """
-    Assuming only one Chromecast device connected to the local network, find its IP address.
+    """Fetches the IP address of a Google Cast-enabled device connected to the local network.
+
+    Assumptions:
+        Only one Google Cast-enabled device can be connected to the local network.
 
     Returns:
-    --------
-    str: The IP address of the Chromecast on network
+        A string containing the IP address of the Google Cast-enabled device.
+
+    Raises:
+        # TODO: What happens if there are more than one Cast-enabled device?
     """
     cmd = "avahi-browse -rt _googlecast._tcp | \
 	       grep -E 'IPv4|address' | awk '{print $3}' | grep '\.' | \
 	       tr -d '[]'"
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    ip_address = output.stdout.strip()
 
-    address = result.stdout.strip()
-    # error = result.stderr # case where there is an error?
-    print(f"Chromecast on local network: {address}")
+    if ip_address == "":
+        print("No Google Cast-enabled device found on local network.")
+        # TODO: What should be returned if no IP address was found?
+    else:
+        print(f"Google Cast-enabled device on local network: {ip_address}")
 
-    return address
+    return ip_address
 
 
 def restart_adb_server():
