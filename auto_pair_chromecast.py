@@ -3,7 +3,7 @@
 # Note: We are assuming only one Chromecast on the local network right
 #       now, meaning no need for hostnames mapping to IP addresses
 
-import chromecast_utils as utils
+import device_utils as utils
 
 if __name__ == "__main__":
     utils.restart_adb_server()

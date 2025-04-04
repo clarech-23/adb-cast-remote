@@ -41,48 +41,31 @@ def restart_adb_server():
     subprocess.run(cmd_start_server, shell=True)
 
 
-# def connect_to_device(address: str, quiet_connect: bool) -> str:
-def connect_with_authorization_prompt(ip_address: str) -> str:
-    """Connects to the Cast-enabled device, triggering an authorization prompt if required.
-    # TODO: I THINK THIS IS MORE SUITED FOR ATTEMPT_TO_CONNECT
-    Developer Options and ADB Debugging must be enabled on the Google Cast-enabled device to
-    allow connection. An authorization prompt will appear on the device screen if it does not
+def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
+    """Connects to a Google Cast-enabled device on the local network.
+
+    Sends the Android Debug Bridge (ADB) connection command to the Cast-enabled device.
+    Developer Options and ADB Debugging must be enabled on the Cast-enabled device to
+    allow connection. An authorization popup will appear on the device screen if it does not
     recognize the host.
 
     Args:
-        ip_address: The IPv4 address of the Google Cast-enabled device.
+        ip_address: The IP address of the Google Cast-enabled device.
+        quiet_connect: A boolean indicating whether to suppress the authorization popup
+                       on the device.
 
     Returns:
-        A string of the output of the ADB connection command.
+        The terminal output of the ADB connection command as a string, which describes
+        the outcome of the connection attempt.
     """
-    cmd = f"adb connect {ip_address}:5555"
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if quiet_connect:
+        cmd = f"abd -a connect {ip_address}"
+    else:
+        cmd = f"adb connect {ip_address}"
 
-    return result.stdout.strip()
+    output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
-
-def connect_quietly(address: str) -> str:
-    """
-    Connect to the Chromecast using Android Debug Bridge without
-    triggering the authorization popup to appear on the Chromecast GUI.
-
-    Parameters:
-    -----------
-    address: str
-        The IP address of the device
-
-    Returns:
-    --------
-    str
-        A statement regarding the outcome of the connection
-
-    """
-    cmd = f"adb -a connect {address}:5555"
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-
-    # TODO: What happens if there is an error?
-
-    return result.stdout.strip()
+    return output.stdout.strip()
 
 
 def get_connection_status(ip_address: str) -> str:
@@ -114,10 +97,12 @@ def attempt_to_connect(ip_address: str):  # TODO: add argument for quietly or no
     remembered the host. That is, the user had selected the "Always Allow" option
     the last time the host attempted to authorize its connection to the device.
 
+    *show example outcomes*
+
     Args:
         ip_address: The IPv4 address of the Google Cast-enabled device.
     """
-    attempt_outcome = connect_quietly(ip_address)
+    attempt_outcome = connect_to_device(ip_address, quiet_connect=True)
     print(f"Connection attempt outcome: {attempt_outcome}")
 
     connection_status = get_connection_status(ip_address)
