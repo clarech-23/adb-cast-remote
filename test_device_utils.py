@@ -19,3 +19,6 @@ class TestConnectToDevice(unittest.TestCase):
         # Case 2: already connected to
         # Case 3: connection refused
         # Case 4: failed to authenticate
+
+if __name__ == '__main__':
+    unittest.main()
