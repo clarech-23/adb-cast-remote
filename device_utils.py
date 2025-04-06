@@ -14,9 +14,9 @@ def get_ip_address() -> str:
         # TODO: What happens if there are more than one Cast-enabled device?
     """
     cmd = (
-        "avahi-browse -rt _googlecast._tcp | "
-	    "grep -E 'IPv4|address' | awk '{print $3}' | grep '\.' | "
-	    "tr -d '[]'"
+        r"avahi-browse -rt _googlecast._tcp | "
+	    r"grep -E 'IPv4|address' | awk '{print $3}' | grep '\.' | "
+	    r"tr -d '[]'"
     )
     output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     ip_address = output.stdout.strip()
