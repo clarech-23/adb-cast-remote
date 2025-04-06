@@ -57,13 +57,18 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
     Returns:
         The terminal output of the ADB connection command as a string, which describes
         the outcome of the connection attempt.
+
+        *examples*
     """
     if quiet_connect:
-        cmd = f"abd -a connect {ip_address}"
+        cmd = f"abd -a connect {ip_address}:5555"
     else:
-        cmd = f"adb connect {ip_address}"
+        cmd = f"adb connect {ip_address}:5555"
 
     output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+    # TODO: What if Developer Options not enabled?
+    # TODO: What if ADB not downloaded?
 
     return output.stdout.strip()
 
@@ -90,7 +95,7 @@ def get_connection_status(ip_address: str) -> str:
     return result.stdout.strip()
 
 
-def attempt_to_connect(ip_address: str):  # TODO: add argument for quietly or not
+def attempt_to_connect(ip_address: str):
     """Attempts to connect to a Cast-enabled device at the given IP address.
 
     The connection should succeed only if the Cast-enabled device has previously
