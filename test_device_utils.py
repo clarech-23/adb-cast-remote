@@ -18,10 +18,10 @@ class TestGetIpAddress(unittest.TestCase):
         mock_result.stdout = ""
         mock_subprocess_run.return_value = mock_result
 
-        with self.assertRaises(RuntimeError) as context:
+        with self.assertRaises(SystemExit) as context:
             device_utils.get_ip_address()
 
-        self.assertIn("No Google Cast-enabled devices found", str(context.exception))
+        self.assertEqual(context.exception.code, 0)
 
     def multiple_ip_addresses_found(self, mock_subprocess_run):
         mock_result = MagicMock()
@@ -31,8 +31,7 @@ class TestGetIpAddress(unittest.TestCase):
         with self.assertRaises(NotImplementedError) as context:
             device_utils.get_ip_address()
 
-        self.assertIn("Handling of multiple Cast-enabled devices is not yet supported",
-                      str(context.exception))
+        self.assertIn("Handling of multiple Cast-enabled devices", str(context.exception))
 
 
 @patch("device_utils.subprocess.run")
@@ -129,6 +128,18 @@ class TestConnectToDeviceFailed(unittest.TestCase):
 
         actual_result = device_utils.connect_to_device(self.ip_address)
         self.assertEqual(actual_result, mock_result.stdout.strip())
+
+    def test_device_status_not_found(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = ""
+        mock_subprocess_run.return_value = mock_result
+
+        with self.assertRaises(RuntimeError) as context:
+            device_utils.get_device_status(self.ip_address)
+
+        self.assertIn("No device with IP address", str(context.exception))
+
+
 
 
 if __name__ == '__main__':
