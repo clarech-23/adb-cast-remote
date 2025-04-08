@@ -8,10 +8,12 @@ def get_ip_address() -> str:
         Only one Google Cast-enabled device can be connected to the local network.
 
     Returns:
-        A string containing the IP address of the Google Cast-enabled device.
+        A string containing the IP address of the Google Cast-enabled device, or none if
+        no device is found.
 
     Raises:
-        # TODO: What happens if there are more than one Cast-enabled device?
+        RunTimeError: If no Google Cast-enabled devices are found.
+        NotImplementedError: If multiple Google Cast-enabled devices are found (not yet supported).
     """
     cmd = (
         r"avahi-browse -rt _googlecast._tcp | "
@@ -19,13 +21,16 @@ def get_ip_address() -> str:
 	    r"tr -d '[]'"
     )
     output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    ip_address = output.stdout.strip()
+    list_ip_addresses = output.stdout.splitlines()
 
-    if ip_address == "":
-        print("No Google Cast-enabled device found on local network.")
-        # TODO: What should be returned if no IP address was found?
-    else:
-        print(f"Google Cast-enabled device on local network: {ip_address}")
+    if len(list_ip_addresses) == 0:
+        raise RuntimeError("No Google Cast-enabled devices found on the local network.")
+    if len(list_ip_addresses) > 1:
+        raise NotImplementedError("This function currently supports only a single Cast-enabled device."
+                                  "Handling of multiple Cast-enabled devices is not yet supported.")
+
+    ip_address = list_ip_addresses[0]
+    print(f"Google Cast-enabled device IP address: {ip_address}")
 
     return ip_address
 
@@ -51,6 +56,15 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
     allow connection. An authorization popup will appear on the device screen if it does not
     recognize the host.
 
+    The command output can be one of the following:
+        1. connected to {ip_address}:5555
+        2. already connected to {ip_address}:5555
+        3. failed to authenticate to {ip_address}:5555
+        4. failed to connect to '{ip_address}:5555': Connection refused
+            - Happens when Developer Options is not enabled on device
+        5. failed to connect to '{ip_address}:5555': No route to host
+        6. failed to resolve host '{ip_address}': Name or service not known
+
     Args:
         ip_address: The IP address of the Google Cast-enabled device.
         quiet_connect: A boolean indicating whether to suppress the authorization popup
@@ -59,8 +73,6 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
     Returns:
         The terminal output of the ADB connection command as a string, which describes
         the outcome of the connection attempt.
-
-        *examples*
     """
     if quiet_connect:
         cmd = f"abd -a connect {ip_address}:5555"
@@ -75,11 +87,11 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
     return output.stdout.strip()
 
 
-def get_connection_status(ip_address: str) -> str:
+def get_device_status(ip_address: str) -> str:
     """Fetches the Android Debug Bridge connection status for the Google Cast-enabled device.
 
     If found, the status can be one of the following:
-        'offline': Device is offline
+        'offline': Host unable to communicate with Cast-enabled device
         'unauthorized': Device is connected but unauthorized
         'device': Device is connected and authorized
     
@@ -97,7 +109,7 @@ def get_connection_status(ip_address: str) -> str:
     return result.stdout.strip()
 
 
-def attempt_to_connect(ip_address: str):
+def attempt_auto_pair(ip_address: str):
     """Attempts to connect to a Cast-enabled device at the given IP address.
 
     The connection should succeed only if the Cast-enabled device has previously
@@ -112,7 +124,7 @@ def attempt_to_connect(ip_address: str):
     attempt_outcome = connect_to_device(ip_address, quiet_connect=True)
     print(f"Connection attempt outcome: {attempt_outcome}")
 
-    connection_status = get_connection_status(ip_address)
+    connection_status = get_device_status(ip_address)
     print(f"Connection status: {connection_status}\n")
 
     if connection_status == "device":
