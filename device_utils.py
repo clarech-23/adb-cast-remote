@@ -1,5 +1,6 @@
 import sys
 import subprocess
+from typing import Optional
 
 
 def get_ip_address() -> str:
@@ -48,22 +49,13 @@ def restart_adb_server():
     subprocess.run(cmd_start_server, shell=True)
 
 
-def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
+def connect_to_device(ip_address: str, quiet_connect: bool = False) -> Optional[str]:
     """Connects to a Google Cast-enabled device on the local network.
 
     Sends the Android Debug Bridge (ADB) connection command to the Cast-enabled device.
     Developer Options and ADB Debugging must be enabled on the Cast-enabled device to
     allow connection. An authorization popup will appear on the device screen if it does not
     recognize the host.
-
-    The command output can be one of the following:
-        1. connected to {ip_address}:5555
-        2. already connected to {ip_address}:5555
-        3. failed to authenticate to {ip_address}:5555 -> need to disconnect;
-        4. failed to connect to '{ip_address}:5555': Connection refused
-            - Happens when Developer Options is not enabled on device
-        5. failed to connect to '{ip_address}:5555': No route to host
-        6. failed to resolve host '{ip_address}': Name or service not known
 
     Args:
         ip_address: The IP address of the Google Cast-enabled device.
@@ -72,24 +64,37 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
 
     Returns:
         The terminal output of the ADB connection command as a string, which describes
-        the outcome of the connection attempt.
+        the outcome of the connection attempt. If connecting quietly, return None.
+
+    Raises:
+        RuntimeError: If unable to connect to Cast-enabled device.
     """
     if quiet_connect:
         cmd = f"abd -a connect {ip_address}:5555"
+        subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        return None
     else:
         cmd = f"adb connect {ip_address}:5555"
+        connection_outcome = subprocess.run(cmd, shell=True, capture_output=True, text=True).stdout.strip()
 
-    output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    connection_outcome = output.stdout
-    print(repr(connection_outcome))
+    if connection_outcome == f"connected to {ip_address}:5555":
+        print(f"Connected to device at {ip_address}")
+    elif connection_outcome == f"already connected to {ip_address}:5555":
+        print(f"Already connected to device at {ip_address}")
+    elif connection_outcome == f"failed to authenticate to {ip_address}:5555":
+        print(f"Failed to authenticate connection to device at {ip_address}")
+    elif connection_outcome == f"failed to connect to '{ip_address}:5555': Connection refused":
+        raise RuntimeError(f"Unable to connect to device at {ip_address}. Check if Developer Options and USB Debugging"
+                           f"is enabled on device.")
+    elif connection_outcome == f"failed to connect to '{ip_address}:5555': No route to host":
+        raise RuntimeError(f"Unable to connect to device at {ip_address}. Check if device is connected to the local "
+                           f"network")
+    elif connection_outcome == f"failed to resolve host '{ip_address}': Name or service not known":
+        raise RuntimeError(f"{ip_address} is an invalid IP address")
+    else:
+        raise RuntimeError(f"Unexpected connection outcome: {connection_outcome}")
 
-    if connection_outcome == f"failed to connect to '{ip_address}:5555': Connection refused":
-        pass
-
-    # TODO: What if Developer Options not enabled?
-    # TODO: What if ADB not downloaded?
-
-    return output.stdout.strip()
+    return connection_outcome
 
 
 def get_device_status(ip_address: str) -> str:
@@ -113,40 +118,10 @@ def get_device_status(ip_address: str) -> str:
     cmd = f"adb devices | grep {ip_address} | awk '{{print $2}}'"
     output = subprocess.run(cmd, shell=True, capture_output=True,
                             text=True)
+
     device_status = output.stdout.strip()
 
     if device_status == "":
         raise RuntimeError(f"No device with IP address {ip_address} found.")
 
     return device_status
-
-
-def attempt_auto_pair(ip_address: str):
-    """Attempts to connect to a Cast-enabled device at the given IP address.
-
-    The connection should succeed only if the Cast-enabled device has previously
-    remembered the host. That is, the user had selected the "Always Allow" option
-    the last time the host attempted to authorize its connection to the device.
-
-    *show example outcomes*
-
-    Args:
-        ip_address: The IPv4 address of the Google Cast-enabled device.
-    """
-    attempt_outcome = connect_to_device(ip_address, quiet_connect=True)
-    print(f"Connection attempt outcome: {attempt_outcome}")
-
-    connection_status = get_device_status(ip_address)
-    print(f"Connection status: {connection_status}\n")
-
-    if connection_status == "device":
-        print("Remote control connected!")
-    elif connection_status == "":
-        print("Connection refused")
-    elif connection_status == "unauthorized":
-        print("Connection unauthorized. Forgetting Chromecast...")
-    # TODO: Delete hostname from txt
-    elif connection_status == "offline":
-        print("Chromecast is offline")
-    else:
-        print("Error: Unknown connection status")

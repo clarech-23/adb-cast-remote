@@ -112,22 +112,40 @@ class TestConnectToDeviceFailed(unittest.TestCase):
         mock_result.stdout = f"failed to connect to '{self.ip_address}:5555': No route to host\n"
         mock_subprocess_run.return_value = mock_result
 
-        actual_result = device_utils.connect_to_device(self.ip_address)
-        self.assertEqual(actual_result, mock_result.stdout.strip())
+        with self.assertRaises(RuntimeError) as context:
+            device_utils.connect_to_device(self.ip_address)
+
+        self.assertIn("Check if device is connected to the local network", str(context.exception))
 
     def test_connect_invalid_input(self, mock_subprocess_run):
-        invalid_input = "1"
         mock_result = MagicMock()
-        mock_result.stdout = f"failed to resolve host '{invalid_input}': Name or service not known\n"
-
-    def test_connect_refused(self, mock_subprocess_run):
-        """When the Chromecast does not have Developer Options enabled, what about if it's off?"""
-        mock_result = MagicMock()
-        mock_result.stdout = f"failed to connect to '{self.ip_address}:5555': Connection refused\n"
+        mock_result.stdout = f"failed to resolve host '{self.ip_address}': Name or service not known"
         mock_subprocess_run.return_value = mock_result
 
-        actual_result = device_utils.connect_to_device(self.ip_address)
-        self.assertEqual(actual_result, mock_result.stdout.strip())
+        with self.assertRaises(RuntimeError) as context:
+            device_utils.connect_to_device(self.ip_address)
+
+        self.assertIn("is an invalid IP address", str(context.exception))
+
+    def test_unknown_connection_outcome(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = "unknown"
+        mock_subprocess_run.return_value = mock_result
+
+        with self.assertRaises(RuntimeError) as context:
+            device_utils.connect_to_device(self.ip_address)
+
+        self.assertIn("Unexpected connection outcome", str(context.exception))
+
+    def test_connect_refused(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"failed to connect to '{self.ip_address}:5555': Connection refused"
+        mock_subprocess_run.return_value = mock_result
+
+        with self.assertRaises(RuntimeError) as context:
+            device_utils.connect_to_device(self.ip_address)
+
+        self.assertIn("Check if Developer Options and USB Debugging", str(context.exception))
 
     def test_device_status_not_found(self, mock_subprocess_run):
         mock_result = MagicMock()
@@ -138,8 +156,6 @@ class TestConnectToDeviceFailed(unittest.TestCase):
             device_utils.get_device_status(self.ip_address)
 
         self.assertIn("No device with IP address", str(context.exception))
-
-
 
 
 if __name__ == '__main__':
