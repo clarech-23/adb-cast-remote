@@ -1,3 +1,4 @@
+import sys
 import subprocess
 
 
@@ -11,7 +12,6 @@ def get_ip_address() -> str:
         A string containing the IP address of the Google Cast-enabled device.
 
     Raises:
-        RunTimeError: If no Google Cast-enabled devices are found.
         NotImplementedError: If multiple Google Cast-enabled devices are found (not yet supported).
     """
     cmd = (
@@ -23,7 +23,8 @@ def get_ip_address() -> str:
     list_ip_addresses = output.stdout.splitlines()
 
     if len(list_ip_addresses) == 0:
-        raise RuntimeError("No Google Cast-enabled devices found on the local network.")
+        print("No Google Cast-enabled devices found on the local network.")
+        sys.exit(0)
     if len(list_ip_addresses) > 1:
         raise NotImplementedError("This function currently supports only a single Cast-enabled device."
                                   "Handling of multiple Cast-enabled devices is not yet supported.")
@@ -58,7 +59,7 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
     The command output can be one of the following:
         1. connected to {ip_address}:5555
         2. already connected to {ip_address}:5555
-        3. failed to authenticate to {ip_address}:5555
+        3. failed to authenticate to {ip_address}:5555 -> need to disconnect;
         4. failed to connect to '{ip_address}:5555': Connection refused
             - Happens when Developer Options is not enabled on device
         5. failed to connect to '{ip_address}:5555': No route to host
@@ -79,6 +80,11 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
         cmd = f"adb connect {ip_address}:5555"
 
     output = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    connection_outcome = output.stdout
+    print(repr(connection_outcome))
+
+    if connection_outcome == f"failed to connect to '{ip_address}:5555': Connection refused":
+        pass
 
     # TODO: What if Developer Options not enabled?
     # TODO: What if ADB not downloaded?
@@ -89,7 +95,8 @@ def connect_to_device(ip_address: str, quiet_connect: bool = False) -> str:
 def get_device_status(ip_address: str) -> str:
     """Fetches the Android Debug Bridge connection status for the Google Cast-enabled device.
 
-    If found, the status can be one of the following:
+    If the device with the corresponding IP address is not found, an empty string is returned.
+    If the device is found, the status can be one of the following:
         'offline': Host unable to communicate with Cast-enabled device
         'unauthorized': Device is connected but unauthorized
         'device': Device is connected and authorized
@@ -98,14 +105,20 @@ def get_device_status(ip_address: str) -> str:
         ip_address: The IPv4 address of the Google Cast-enabled device.
 
     Returns:
-        The connection status of the device, if found. Returns an empty string if the
-         device is not listed.
+        The connection status of the device, if found.
+
+    Raises:
+        RuntimeError: If no device with the corresponding IP address was found.
     """
     cmd = f"adb devices | grep {ip_address} | awk '{{print $2}}'"
-    result = subprocess.run(cmd, shell=True, capture_output=True,
+    output = subprocess.run(cmd, shell=True, capture_output=True,
                             text=True)
+    device_status = output.stdout.strip()
 
-    return result.stdout.strip()
+    if device_status == "":
+        raise RuntimeError(f"No device with IP address {ip_address} found.")
+
+    return device_status
 
 
 def attempt_auto_pair(ip_address: str):
