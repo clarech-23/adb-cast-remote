@@ -65,6 +65,3 @@ class TestAutoPairToCastDevice(unittest.TestCase):
         mock_connect.assert_called_once_with(self.ip_address, quiet_connect=True)
         mock_device_status.assert_called_once_with(self.ip_address)
         self.assertIn("Handling of unknown connection status", str(context.exception))
-
-
-
