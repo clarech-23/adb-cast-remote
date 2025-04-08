@@ -2,13 +2,15 @@ import unittest
 from unittest.mock import patch, MagicMock
 import device_utils
 
+@patch("device_utils.subprocess.run")
+class TestGetIpAddress()
 
-class TestConnectToDevice(unittest.TestCase):
+@patch("device_utils.subprocess.run")
+class TestConnectToDeviceSuccessful(unittest.TestCase):
 
     def setUp(self):
         self.ip_address = "192.168.1.80"
 
-    @patch("device_utils.subprocess.run")
     def test_connect_auth_failed(self, mock_subprocess_run):
         # First mock result: failed to authenticate
         mock_result_1 = MagicMock()
@@ -29,8 +31,66 @@ class TestConnectToDevice(unittest.TestCase):
         actual_result2 = device_utils.connect_to_device(self.ip_address)
         self.assertEqual(actual_result2, mock_result_2.stdout.strip())
 
+    def test_connect_already_paired(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"already connected to {self.ip_address}:5555\n"
+        mock_subprocess_run.return_value = mock_result
 
-    @patch("device_utils.subprocess.run")
+        actual_result = device_utils.connect_to_device(self.ip_address)
+        self.assertEqual(actual_result, mock_result.stdout.strip())
+
+    def test_connect_host_remembered(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"connected to {self.ip_address}:5555\n"
+        mock_subprocess_run.return_value = mock_result
+
+        actual_result = device_utils.connect_to_device(self.ip_address)
+        self.assertEqual(actual_result, mock_result.stdout.strip())
+
+    def test_device_status_offline(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = "offline"
+        mock_subprocess_run.return_value = mock_result
+
+        actual_result = device_utils.get_device_status(self.ip_address)
+        self.assertEqual(actual_result, mock_result.stdout)
+
+    def test_device_status_unauthorized(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = "unauthorized"
+        mock_subprocess_run.return_value = mock_result
+
+        actual_result = device_utils.get_device_status(self.ip_address)
+        self.assertEqual(actual_result, mock_result.stdout)
+
+    def test_device_status_connected(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = "device"
+        mock_subprocess_run.return_value = mock_result
+
+        actual_result = device_utils.get_device_status(self.ip_address)
+        self.assertEqual(actual_result, mock_result.stdout)
+
+
+@patch("device_utils.subprocess.run")
+class TestConnectToDeviceFailed(unittest.TestCase):
+
+    def setUp(self):
+        self.ip_address = "192.168.1.80"
+
+    def test_connect_invalid_ip_address(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"failed to connect to '{self.ip_address}:5555': No route to host\n"
+        mock_subprocess_run.return_value = mock_result
+
+        actual_result = device_utils.connect_to_device(self.ip_address)
+        self.assertEqual(actual_result, mock_result.stdout.strip())
+
+    def test_connect_invalid_input(self, mock_subprocess_run):
+        invalid_input = "1"
+        mock_result = MagicMock()
+        mock_result.stdout = f"failed to resolve host '{invalid_input}': Name or service not known\n"
+
     def test_connect_refused(self, mock_subprocess_run):
         """When the Chromecast does not have Developer Options enabled, what about if it's off?"""
         mock_result = MagicMock()
@@ -41,24 +101,6 @@ class TestConnectToDevice(unittest.TestCase):
         self.assertEqual(actual_result, mock_result.stdout.strip())
 
 
-    @patch("device_utils.subprocess.run")
-    def test_connect_already_paired(self, mock_subprocess_run):
-        mock_result = MagicMock()
-        mock_result.stdout = f"already connected to {self.ip_address}:5555\n"
-        mock_subprocess_run.return_value = mock_result
-
-        actual_result = device_utils.connect_to_device(self.ip_address)
-        self.assertEqual(actual_result, mock_result.stdout.strip())
-
-
-    @patch("device_utils.subprocess.run")
-    def test_connect_host_remembered(self, mock_subprocess_run):
-        mock_result = MagicMock()
-        mock_result.stdout = f"connected to {self.ip_address}:5555\n"
-        mock_subprocess_run.return_value = mock_result
-
-        actual_result = device_utils.connect_to_device(self.ip_address)
-        self.assertEqual(actual_result, mock_result.stdout.strip())
 
 
 if __name__ == '__main__':
