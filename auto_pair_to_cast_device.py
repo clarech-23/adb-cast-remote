@@ -24,7 +24,7 @@ def auto_pair_to_device(address: str):
     elif connection_status == "offline":
         print("Unable to connect to Google Cast-enabled device.")
     else:
-        raise NotImplementedError(f"Handling of unknown connection status: {connection_status} not yet implemented")
+        raise NotImplementedError(f"Handling of unknown connection status: {connection_status} not yet implemented.")
 
 if __name__ == "__main__":
     ip_address = utils.get_ip_address()
