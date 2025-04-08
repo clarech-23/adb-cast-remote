@@ -8,8 +8,7 @@ def get_ip_address() -> str:
         Only one Google Cast-enabled device can be connected to the local network.
 
     Returns:
-        A string containing the IP address of the Google Cast-enabled device, or none if
-        no device is found.
+        A string containing the IP address of the Google Cast-enabled device.
 
     Raises:
         RunTimeError: If no Google Cast-enabled devices are found.
