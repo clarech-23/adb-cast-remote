@@ -102,15 +102,16 @@ def get_device_status(ip_address: str) -> str:
 
     If the device with the corresponding IP address is not found, an empty string is returned.
     If the device is found, the status can be one of the following:
-        'offline': Host unable to communicate with Cast-enabled device
-        'unauthorized': Device is connected but unauthorized
         'device': Device is connected and authorized
+        'unauthorized': Device is connected but unauthorized
+        'offline': Host unable to communicate with Cast-enabled device
     
     Args:
         ip_address: The IPv4 address of the Google Cast-enabled device.
 
     Returns:
-        The connection status of the device, if found.
+        The connection status of the device as a string, if found. Returns empty string if
+        the device was not found.
 
     Raises:
         RuntimeError: If no device with the corresponding IP address was found.
