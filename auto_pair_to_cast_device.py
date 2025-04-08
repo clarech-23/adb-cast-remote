@@ -1,11 +1,9 @@
 #!/usr/bin/python3
 
-# Note: We are assuming only one Chromecast on the local network right
-#       now, meaning no need for hostnames mapping to IP addresses
-
+import subprocess
 import device_utils as utils
 
-def attempt_auto_pair(address: str):
+def auto_pair_to_device(address: str):
     """Attempts to connect to a Cast-enabled device at the given IP address.
 
     The connection should succeed only if the Cast-enabled device has previously
@@ -15,21 +13,19 @@ def attempt_auto_pair(address: str):
     Args:
         address: The IPv4 address of the Google Cast-enabled device.
     """
-    utils.connect_to_device(address, quiet_connect=True)
-
+    utils.connect_to_cast_device(address, quiet_connect=True)
     connection_status = utils.get_device_status(address)
-    print(f"Connection status: {connection_status}\n")
 
     if connection_status == "device":
-        print("Remote control connected!")
+        print(f"Connected to Google Cast-enabled device at {address}!")
     elif connection_status == "unauthorized":
-        print("Connection unauthorized. Forgetting Chromecast...")
+        print(f"Connection to Google Cast-enabled device at {address} is unauthorized. Forgetting device...")
+        subprocess.run(f"adb disconnect {address}", shell=True)
     elif connection_status == "offline":
-        print("Chromecast is offline")
+        print("Unable to connect to Google Cast-enabled device.")
     else:
         raise NotImplementedError(f"Handling of unknown connection status: {connection_status} not yet implemented")
 
 if __name__ == "__main__":
-    utils.restart_adb_server()
     ip_address = utils.get_ip_address()
-    attempt_auto_pair(ip_address)
+    auto_pair_to_device(ip_address)

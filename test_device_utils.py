@@ -53,11 +53,11 @@ class TestConnectToDeviceSuccessful(unittest.TestCase):
         mock_subprocess_run.side_effect = [mock_result_1, mock_result_2]
 
         # First call
-        actual_result1 = device_utils.connect_to_device(self.ip_address)
+        actual_result1 = device_utils.connect_to_cast_device(self.ip_address)
         self.assertEqual(actual_result1, mock_result_1.stdout.strip())
 
         # Second call
-        actual_result2 = device_utils.connect_to_device(self.ip_address)
+        actual_result2 = device_utils.connect_to_cast_device(self.ip_address)
         self.assertEqual(actual_result2, mock_result_2.stdout.strip())
 
     def test_connect_already_paired(self, mock_subprocess_run):
@@ -65,7 +65,7 @@ class TestConnectToDeviceSuccessful(unittest.TestCase):
         mock_result.stdout = f"already connected to {self.ip_address}:5555\n"
         mock_subprocess_run.return_value = mock_result
 
-        actual_result = device_utils.connect_to_device(self.ip_address)
+        actual_result = device_utils.connect_to_cast_device(self.ip_address)
         self.assertEqual(actual_result, mock_result.stdout.strip())
 
     def test_connect_host_remembered(self, mock_subprocess_run):
@@ -73,7 +73,7 @@ class TestConnectToDeviceSuccessful(unittest.TestCase):
         mock_result.stdout = f"connected to {self.ip_address}:5555\n"
         mock_subprocess_run.return_value = mock_result
 
-        actual_result = device_utils.connect_to_device(self.ip_address)
+        actual_result = device_utils.connect_to_cast_device(self.ip_address)
         self.assertEqual(actual_result, mock_result.stdout.strip())
 
     def test_device_status_offline(self, mock_subprocess_run):
@@ -113,7 +113,7 @@ class TestConnectToDeviceFailed(unittest.TestCase):
         mock_subprocess_run.return_value = mock_result
 
         with self.assertRaises(RuntimeError) as context:
-            device_utils.connect_to_device(self.ip_address)
+            device_utils.connect_to_cast_device(self.ip_address)
 
         self.assertIn("Check if device is connected to the local network", str(context.exception))
 
@@ -123,7 +123,7 @@ class TestConnectToDeviceFailed(unittest.TestCase):
         mock_subprocess_run.return_value = mock_result
 
         with self.assertRaises(RuntimeError) as context:
-            device_utils.connect_to_device(self.ip_address)
+            device_utils.connect_to_cast_device(self.ip_address)
 
         self.assertIn("is an invalid IP address", str(context.exception))
 
@@ -133,7 +133,7 @@ class TestConnectToDeviceFailed(unittest.TestCase):
         mock_subprocess_run.return_value = mock_result
 
         with self.assertRaises(RuntimeError) as context:
-            device_utils.connect_to_device(self.ip_address)
+            device_utils.connect_to_cast_device(self.ip_address)
 
         self.assertIn("Unexpected connection outcome", str(context.exception))
 
@@ -143,7 +143,7 @@ class TestConnectToDeviceFailed(unittest.TestCase):
         mock_subprocess_run.return_value = mock_result
 
         with self.assertRaises(RuntimeError) as context:
-            device_utils.connect_to_device(self.ip_address)
+            device_utils.connect_to_cast_device(self.ip_address)
 
         self.assertIn("Check if Developer Options and USB Debugging", str(context.exception))
 

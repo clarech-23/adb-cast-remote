@@ -49,7 +49,7 @@ def restart_adb_server():
     subprocess.run(cmd_start_server, shell=True)
 
 
-def connect_to_device(ip_address: str, quiet_connect: bool = False) -> Optional[str]:
+def connect_to_cast_device(ip_address: str, quiet_connect: bool = False) -> Optional[str]:
     """Connects to a Google Cast-enabled device on the local network.
 
     Sends the Android Debug Bridge (ADB) connection command to the Cast-enabled device.
