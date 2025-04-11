@@ -4,7 +4,7 @@ import subprocess
 import device_utils as utils
 
 def auto_pair_to_device(address: str):
-    """Attempts to connect to a Cast-enabled device at the given IP address.
+    """Attempts to silently connect to a Cast-enabled device at the given IP address.
 
     The connection should succeed only if the Cast-enabled device has previously
     remembered the host. That is, the user had selected the "Always Allow" option
@@ -27,5 +27,5 @@ def auto_pair_to_device(address: str):
         raise NotImplementedError(f"Handling of unknown connection status: {connection_status} not yet implemented.")
 
 if __name__ == "__main__":
-    ip_address = utils.get_ip_address()
+    ip_address = utils.find_device_ip_address()
     auto_pair_to_device(ip_address)
