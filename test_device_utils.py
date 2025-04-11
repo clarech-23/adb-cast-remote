@@ -10,7 +10,7 @@ class TestGetIpAddress(unittest.TestCase):
         mock_result.stdout = "192.168.1.80\n"
         mock_subprocess_run.return_value = mock_result
 
-        actual_result = device_utils.get_ip_address()
+        actual_result = device_utils.find_device_ip_address()
         self.assertEqual(actual_result, "192.168.1.80")
 
     def test_no_ip_address_found(self, mock_subprocess_run):
@@ -19,7 +19,7 @@ class TestGetIpAddress(unittest.TestCase):
         mock_subprocess_run.return_value = mock_result
 
         with self.assertRaises(SystemExit) as context:
-            device_utils.get_ip_address()
+            device_utils.find_device_ip_address()
 
         self.assertEqual(context.exception.code, 0)
 
@@ -29,7 +29,7 @@ class TestGetIpAddress(unittest.TestCase):
         mock_subprocess_run.return_value = mock_result
 
         with self.assertRaises(NotImplementedError) as context:
-            device_utils.get_ip_address()
+            device_utils.find_device_ip_address()
 
         self.assertIn("Handling of multiple Cast-enabled devices", str(context.exception))
 
@@ -40,41 +40,45 @@ class TestConnectToDeviceSuccessful(unittest.TestCase):
     def setUp(self):
         self.ip_address = "192.168.1.80"
 
-    def test_connect_auth_failed(self, mock_subprocess_run):
-        # First mock result: failed to authenticate
-        mock_result_1 = MagicMock()
-        mock_result_1.stdout = f"failed to authenticate to {self.ip_address}:5555\n"
+    @patch("device_utils.get_device_status")
+    def test_connect_auth_failed(self, mock_device_status, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"failed to authenticate to {self.ip_address}:5555\n"
+        mock_subprocess_run.return_value = mock_result
+        mock_device_status.return_value = None
 
-        # Second mock result: already connected
-        mock_result_2 = MagicMock()
-        mock_result_2.stdout = f"already connected to {self.ip_address}:5555\n"
+        actual_result = device_utils.connect_to_cast_device(self.ip_address)
+        self.assertEqual(actual_result, False)
 
-        # Return the two results in order
-        mock_subprocess_run.side_effect = [mock_result_1, mock_result_2]
-
-        # First call
-        actual_result1 = device_utils.connect_to_cast_device(self.ip_address)
-        self.assertEqual(actual_result1, mock_result_1.stdout.strip())
-
-        # Second call
-        actual_result2 = device_utils.connect_to_cast_device(self.ip_address)
-        self.assertEqual(actual_result2, mock_result_2.stdout.strip())
-
-    def test_connect_already_paired(self, mock_subprocess_run):
+    @patch("device_utils.get_device_status")
+    def test_connect_already_paired(self, mock_device_status, mock_subprocess_run):
         mock_result = MagicMock()
         mock_result.stdout = f"already connected to {self.ip_address}:5555\n"
         mock_subprocess_run.return_value = mock_result
+        mock_device_status.return_value = "device"
 
         actual_result = device_utils.connect_to_cast_device(self.ip_address)
-        self.assertEqual(actual_result, mock_result.stdout.strip())
+        self.assertEqual(actual_result, True)
 
-    def test_connect_host_remembered(self, mock_subprocess_run):
+    @patch("device_utils.get_device_status")
+    def test_connect_unauthorized_pair(self, mock_device_status, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"already connected to {self.ip_address}:5555\n"
+        mock_subprocess_run.return_value = mock_result
+        mock_device_status.return_value = "unauthorized"
+
+        actual_result = device_utils.connect_to_cast_device(self.ip_address)
+        self.assertEqual(actual_result, False)
+
+    @patch("device_utils.get_device_status")
+    def test_connect_host_remembered(self, mock_device_status, mock_subprocess_run):
         mock_result = MagicMock()
         mock_result.stdout = f"connected to {self.ip_address}:5555\n"
         mock_subprocess_run.return_value = mock_result
+        mock_device_status.return_value = None
 
         actual_result = device_utils.connect_to_cast_device(self.ip_address)
-        self.assertEqual(actual_result, mock_result.stdout.strip())
+        self.assertEqual(actual_result, True)
 
     def test_device_status_offline(self, mock_subprocess_run):
         mock_result = MagicMock()
@@ -99,6 +103,15 @@ class TestConnectToDeviceSuccessful(unittest.TestCase):
 
         actual_result = device_utils.get_device_status(self.ip_address)
         self.assertEqual(actual_result, mock_result.stdout)
+
+    @patch("builtins.print")
+    def test_disconnect_from_device_success(self, mock_print, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"disconnected {self.ip_address}"
+        mock_subprocess_run.return_value = mock_result
+
+        device_utils.disconnect_from_device(self.ip_address)
+        mock_print.assert_called_with(f"Disconnected from device {self.ip_address}")
 
 
 @patch("device_utils.subprocess.run")
@@ -156,6 +169,16 @@ class TestConnectToDeviceFailed(unittest.TestCase):
             device_utils.get_device_status(self.ip_address)
 
         self.assertIn("No device with IP address", str(context.exception))
+
+    def test_disconnect_from_device_fail(self, mock_subprocess_run):
+        mock_result = MagicMock()
+        mock_result.stdout = f"error: no such device '{self.ip_address}':5555"
+        mock_subprocess_run.return_value = mock_result
+
+        with self.assertRaises(RuntimeError) as context:
+            device_utils.disconnect_from_device(self.ip_address)
+
+        self.assertIn("No such device", str(context.exception))
 
 
 if __name__ == '__main__':
